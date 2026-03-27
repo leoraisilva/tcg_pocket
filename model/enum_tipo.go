@@ -6,15 +6,15 @@ type Tipo string
 
 const (
 	TipoFogo     Tipo = "Fogo"
-	TipoAgua     Tipo = "Água"
+	TipoAgua     Tipo = "Agua"
 	TipoPlanta   Tipo = "Planta"
-	TipoEletrico Tipo = "Elétrico"
-	TipoPsiquico Tipo = "Psíquico"
+	TipoEletrico Tipo = "Eletrico"
+	TipoPsiquico Tipo = "Psiquico"
 	TipoLutador  Tipo = "Lutador"
 	TipoNoturno  Tipo = "Noturno"
 	TipoMetal    Tipo = "Metal"
 	TipoComum    Tipo = "Comum"
-	TipoDragon   Tipo = "Dragão"
+	TipoDragon   Tipo = "Dragao"
 )
 
 func (t Tipo) IsValid() bool {
@@ -42,13 +42,13 @@ func (t Tipo) GetTipo() string {
 	case TipoFogo:
 		return "Fogo"
 	case TipoAgua:
-		return "Água"
+		return "Agua"
 	case TipoPlanta:
 		return "Planta"
 	case TipoEletrico:
-		return "Elétrico"
+		return "Eletrico"
 	case TipoPsiquico:
-		return "Psíquico"
+		return "Psiquico"
 	case TipoLutador:
 		return "Lutador"
 	case TipoNoturno:
@@ -58,7 +58,7 @@ func (t Tipo) GetTipo() string {
 	case TipoComum:
 		return "Comum"
 	case TipoDragon:
-		return "Dragão"
+		return "Dragao"
 	default:
 		return "Desconecido"
 	}

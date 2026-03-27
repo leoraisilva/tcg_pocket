@@ -26,7 +26,13 @@ func main() {
 		})
 	})
 
-	server.POST("/criar", controller.CreateTCG)
+	server.POST("/pokemon/create", controller.CreateTCGPokemon)
+	server.GET("/pokemon/:id", controller.GetTCGPokemonByID)
+	server.GET("/pokemons", controller.GetTCGCollection)
+
+	server.POST("/apoiador/create", controller.CreateApoiador)
+	server.GET("/apoiador/:id", controller.GetTCGApoiadorByID)
+	server.GET("/apoiadores", controller.GetTCGCollectionApoiador)
 
 	server.Run(":8000")
 
