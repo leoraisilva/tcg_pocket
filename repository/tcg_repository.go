@@ -14,6 +14,7 @@ func NewTCGRepository(db *sql.DB) TCGRepository {
 	return TCGRepository{db: db}
 }
 
+/* Endpoint /pokemon */
 func (r *TCGRepository) CreateTCGPokemon(model model.Pokemon) (int, error) {
 	var id int
 
@@ -169,6 +170,74 @@ func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 	return listPokemon, err
 }
 
+func (r *TCGRepository) UpdateTCGPokemon(id int, base model.Pokemon) (model.Pokemon, error) {
+	var pokemon model.Pokemon
+
+	ataque, err := r.GetAtaqueForNome(base.Ataque.Nome)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			novoAtaque, err := r.CreateAtaque(base.Ataque)
+			if err != nil {
+				fmt.Printf("Erro ao criar ataque: %v\n", err)
+				return model.Pokemon{}, err
+			}
+			base.Ataque = novoAtaque
+		} else {
+			fmt.Printf("Erro ao buscar ataque: %v\n", err)
+			return model.Pokemon{}, err
+		}
+	} else {
+		base.Ataque = ataque
+	}
+
+	habilidade, err := r.GetHabilidadeForNome(base.Habilidade.Nome)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			novaHabilidade, err := r.CreateHabilidade(base.Habilidade)
+			if err != nil {
+				fmt.Printf("Erro ao criar habilidade: %v\n", err)
+				return model.Pokemon{}, err
+			}
+			base.Habilidade = novaHabilidade
+		} else {
+			fmt.Printf("Erro ao buscar habilidade: %v\n", err)
+			return model.Pokemon{}, err
+		}
+	} else {
+		base.Habilidade = habilidade
+	}
+
+	query := `UPDATE pokemon SET nome=$1, card_type=$2, tipo=$3, estagio=$4, habilidade=$5, ataque=$6, ps=$7, recuo=$8, fraqueza=$9 WHERE id=$10`
+	err = r.db.QueryRow(query, base.Nome, base.TipoCarta, base.Tipo, base.Estagio, base.Habilidade.Nome, base.Ataque.Nome, base.PS, base.Recuo, base.Fraqueza, id).Scan(
+		&pokemon.Ataque.Nome,
+		&pokemon.TipoCarta,
+		&pokemon.Tipo,
+		&pokemon.Estagio,
+		&pokemon.Habilidade.Nome,
+		&pokemon.Ataque.Nome,
+		&pokemon.PS,
+		&pokemon.Recuo,
+		&pokemon.Fraqueza,
+	)
+	if err != nil {
+		fmt.Printf("Erro ao tentar alterar o pokemon: %v\n", err)
+		return model.Pokemon{}, err
+	}
+	return pokemon, err
+}
+
+func (r *TCGRepository) DeleteTCGPokemon(id int) (string, error) {
+	response := "Delete com Sucesso!!"
+	query := `DELETE FROM pokemon WHERE id=$1`
+	_, err := r.db.Query(query, id)
+	if err != nil {
+		fmt.Printf("Erro ao deletar o pokemon: %v\n", err)
+		return "", err
+	}
+	return response, err
+}
+
+/* Endpoint /apoiador */
 func (r *TCGRepository) CreateApoiador(apoiador model.Apoiador) (int, error) {
 	var id int
 	query := `INSERT INTO apoiador (nome, card_type, efeito) VALUES ($1, $2, $3) RETURNING id`
@@ -221,6 +290,33 @@ func (r *TCGRepository) GetTCGCollectionApoiador() ([]model.Apoiador, error) {
 	return collectioApoiador, err
 }
 
+func (r *TCGRepository) UpdateTCGApoiador(id int, apoiador model.Apoiador) (model.Apoiador, error) {
+	var row model.Apoiador
+	query := `UPDATE apoiador SET nome=$1, card_type=$2, efeito=$3 WHERE id=$4`
+	err := r.db.QueryRow(query, apoiador.Nome, apoiador.CardType, apoiador.Efeito, id).Scan(
+		&row.Nome,
+		&row.CardType,
+		&row.Efeito,
+	)
+	if err != nil {
+		fmt.Printf("Erro ao tentar alterar o apoiador: %v\n", err)
+		return model.Apoiador{}, err
+	}
+	return model.Apoiador{}, err
+}
+
+func (r *TCGRepository) DeleteTCGApoiador(id int) (string, error) {
+	response := "Delete com Sucesso!!"
+	query := `DELETE FROM apoiador WHERE id=$1`
+	_, err := r.db.Query(query, id)
+	if err != nil {
+		fmt.Printf("Erro ao tentar deletar o Apoidores: %v\n", err)
+		return "", err
+	}
+	return response, err
+}
+
+/* Endpoint /item */
 func (r *TCGRepository) CreateItem(item model.Item) (int, error) {
 	var id int
 	query := `INSERT INTO item (nome, card_type, efeito) VALUES ($1, $2, $3) RETURNING id`
@@ -269,4 +365,29 @@ func (r *TCGRepository) GetTCGCollectionItem() ([]model.Item, error) {
 	}
 	list.Close()
 	return itens, err
+}
+
+func (r *TCGRepository) UpdateTCGItem(id int, item model.Item) (model.Item, error) {
+	var row model.Item
+	query := `UPDATE item SET nome=$1, card_type=$2, efeito=$3 WHERE id=$4`
+	err := r.db.QueryRow(query, item.Nome, item.CardType, item.Efeito, id).Scan(
+		&row.Nome,
+		&row.CardType,
+		&row.Efeito,
+	)
+	if err != nil {
+		fmt.Printf("Erro ao tentar alterar o apoiador: %v\n", err)
+		return model.Item{}, err
+	}
+	return model.Item{}, err
+}
+
+func (r *TCGRepository) DeleteTCGItem(id int) (string, error) {
+	response := "Delete com Sucesso!!"
+	_, err := r.db.Query(`DELETE FROM item WHERE id=$1`, id)
+	if err != nil {
+		fmt.Printf("Erro ao tentar deletar item: %v\n", err)
+		return "", err
+	}
+	return response, err
 }
