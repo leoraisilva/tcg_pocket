@@ -34,6 +34,10 @@ func main() {
 	server.GET("/apoiador/:id", controller.GetTCGApoiadorByID)
 	server.GET("/apoiadores", controller.GetTCGCollectionApoiador)
 
+	server.POST("/item/create", controller.CreateItem)
+	server.GET("/item/:id", controller.GetTCGItemByID)
+	server.GET("/apoiadores", controller.GetTCGCollectionItem)
+
 	server.Run(":8000")
 
 }

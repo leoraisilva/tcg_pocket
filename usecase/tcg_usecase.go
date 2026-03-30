@@ -48,3 +48,21 @@ func (u *TCGUseCase) GetTCGApoiadorByID(id int) (model.Apoiador, error) {
 func (u *TCGUseCase) GetTCGCollectionApoiador() ([]model.Apoiador, error) {
 	return u.repository.GetTCGCollectionApoiador()
 }
+
+func (u *TCGUseCase) GetTCGCollectionItem() ([]model.Item, error) {
+	return u.repository.GetTCGCollectionItem()
+}
+
+func (u *TCGUseCase) GetTCGItemByID(id int) (model.Item, error) {
+	return u.repository.GetTCGItemByID(id)
+}
+
+func (u *TCGUseCase) CreateItem(item model.Item) (model.Item, error) {
+	id, err := u.repository.CreateItem(item)
+	if err != nil {
+		fmt.Printf("Erro ao tentar Criar o item: %v\n", err)
+		return model.Item{}, err
+	}
+	item.Id = id
+	return item, err
+}

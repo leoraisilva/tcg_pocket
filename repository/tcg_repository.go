@@ -220,3 +220,53 @@ func (r *TCGRepository) GetTCGCollectionApoiador() ([]model.Apoiador, error) {
 	list.Close()
 	return collectioApoiador, err
 }
+
+func (r *TCGRepository) CreateItem(item model.Item) (int, error) {
+	var id int
+	query := `INSERT INTO item (nome, card_type, efeito) VALUES ($1, $2, $3) RETURNING id`
+	err := r.db.QueryRow(query, item.Nome, item.CardType, item.Efeito).Scan(&id)
+	if err != nil {
+		fmt.Printf("Erro ao Criar Item: %v\n", err)
+		return 0, err
+	}
+	return id, err
+}
+
+func (r *TCGRepository) GetTCGItemByID(id int) (model.Item, error) {
+	var item model.Item
+	query := `SELECT id, nome, card_type, efeito FROM item WHERE id=$1`
+	err := r.db.QueryRow(query, id).Scan(
+		&item.Id,
+		&item.Nome,
+		&item.CardType,
+		&item.Efeito,
+	)
+	if err != nil {
+		fmt.Printf("Erro ao Buscar Item por ID: %v\n", err)
+		return model.Item{}, err
+	}
+	return item, err
+}
+
+func (r *TCGRepository) GetTCGCollectionItem() ([]model.Item, error) {
+	query := `SELECT id, nome, card_type, efeito FROM item`
+	list, err := r.db.Query(query)
+	var item model.Item
+	var itens []model.Item
+
+	for list.Next() {
+		list.Scan(
+			&item.Id,
+			&item.Nome,
+			&item.CardType,
+			&item.Efeito,
+		)
+		if err != nil {
+			fmt.Printf("Erro ao escanear os item listado: %v\n", err)
+			return []model.Item{}, err
+		}
+		itens = append(itens, item)
+	}
+	list.Close()
+	return itens, err
+}

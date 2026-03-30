@@ -92,3 +92,42 @@ func (c *TCGController) GetTCGCollectionApoiador(g *gin.Context) {
 	}
 	g.JSON(200, list)
 }
+
+func (c *TCGController) GetTCGCollectionItem(g *gin.Context) {
+	list, err := c.usecase.GetTCGCollectionItem()
+	if err != nil {
+		g.JSON(500, gin.H{"erro": err.Error()})
+		return
+	}
+	g.JSON(200, list)
+}
+
+func (c *TCGController) GetTCGItemByID(g *gin.Context) {
+	idParam := g.Param("id")
+	var id int
+	_, err := fmt.Sscanf(idParam, "%d", &id)
+	if err != nil {
+		g.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	response, err := c.usecase.GetTCGItemByID(id)
+	if err != nil {
+		g.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	g.JSON(200, response)
+}
+
+func (c *TCGController) CreateItem(g *gin.Context) {
+	var item model.Item
+	if err := g.ShouldBindJSON(&item); err != nil {
+		g.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	response, err := c.usecase.CreateItem(item)
+	if err != nil {
+		g.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	g.JSON(200, response)
+}
