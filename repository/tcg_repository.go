@@ -15,69 +15,113 @@ func NewTCGRepository(db *sql.DB) TCGRepository {
 }
 
 /* Endpoint /pokemon */
-func (r *TCGRepository) CreateTCGPokemon(model model.Pokemon) (int, error) {
+func (r *TCGRepository) CreateTCGPokemon(pokemon model.Pokemon) (int, error) {
 	var id int
 
-	ataque, err := r.GetAtaqueForNome(model.Ataque.Nome)
+	tx, err := r.db.Begin()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			novoAtaque, err := r.CreateAtaque(model.Ataque)
-			if err != nil {
-				fmt.Printf("Erro ao criar ataque: %v\n", err)
-				return 0, err
-			}
-			model.Ataque = novoAtaque
-		} else {
-			fmt.Printf("Erro ao buscar ataque: %v\n", err)
-			return 0, err
-		}
-	} else {
-		model.Ataque = ataque
+		fmt.Printf("Erro ao iniciar o Banco: %v\n", err)
+		return 0, err
 	}
 
-	habilidade, err := r.GetHabilidadeForNome(model.Habilidade.Nome)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			novaHabilidade, err := r.CreateHabilidade(model.Habilidade)
-			if err != nil {
-				fmt.Printf("Erro ao criar habilidade: %v\n", err)
+	var ataqueAtualizado []model.Ataque
+
+	for _, atk := range pokemon.Ataque {
+		ataque, err := r.GetAtaqueForNome(tx, atk.Nome)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				novoAtaque, err := r.CreateAtaque(tx, atk)
+				if err != nil {
+					fmt.Printf("Erro ao criar ataque: %v\n", err)
+					tx.Rollback()
+					return 0, err
+				}
+				ataqueAtualizado = append(ataqueAtualizado, novoAtaque)
+			} else {
+				fmt.Printf("Erro ao buscar ataque: %v\n", err)
+				tx.Rollback()
 				return 0, err
 			}
-			model.Habilidade = novaHabilidade
 		} else {
-			fmt.Printf("Erro ao buscar habilidade: %v\n", err)
-			return 0, err
+			ataqueAtualizado = append(ataqueAtualizado, ataque)
 		}
-	} else {
-		model.Habilidade = habilidade
 	}
 
-	err = r.db.QueryRow(`
-		INSERT INTO pokemon (nome, card_type, tipo, estagio, habilidade, ataque, ps, recuo, fraqueza)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	var habilidadeAtualizado []model.Habilidade
+
+	for _, hab := range pokemon.Habilidade {
+		habilidade, err := r.GetHabilidadeForNome(tx, hab.Nome)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				novaHabilidade, err := r.CreateHabilidade(tx, hab)
+				if err != nil {
+					fmt.Printf("Erro ao criar habilidade: %v\n", err)
+					tx.Rollback()
+					return 0, err
+				}
+				habilidadeAtualizado = append(habilidadeAtualizado, novaHabilidade)
+			} else {
+				fmt.Printf("Erro ao buscar habilidade: %v\n", err)
+				tx.Rollback()
+				return 0, err
+			}
+		} else {
+			habilidadeAtualizado = append(habilidadeAtualizado, habilidade)
+		}
+	}
+
+	err = tx.QueryRow(`
+		INSERT INTO pokemon (nome, card_type, tipo, estagio, geracao, ps, recuo, fraqueza)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id`,
-		model.Nome,
-		model.TipoCarta,
-		model.Tipo,
-		model.Estagio,
-		model.Habilidade.Nome,
-		model.Ataque.Nome,
-		model.PS,
-		model.Recuo,
-		model.Fraqueza,
+		pokemon.Nome,
+		pokemon.TipoCarta,
+		pokemon.Tipo,
+		pokemon.Estagio,
+		pokemon.Geracao,
+		pokemon.PS,
+		pokemon.Recuo,
+		pokemon.Fraqueza,
 	).Scan(&id)
 
 	if err != nil {
 		fmt.Printf("Erro ao criar Pokemon: %v\n", err)
+		tx.Rollback()
 		return 0, err
 	}
 
-	return id, nil
+	for _, atk := range ataqueAtualizado {
+		_, err := tx.Exec(`
+			INSERT INTO pokemon_ataque (id_pokemon, ataque)
+			VALUES ($1, $2)
+		`, id, atk.Nome)
+
+		if err != nil {
+			fmt.Printf("Erro ao adicionar ataque: %v\n", err)
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	for _, hab := range habilidadeAtualizado {
+		_, err := tx.Exec(`
+			INSERT INTO pokemon_habilidade (id_pokemon, habilidade)
+			VALUES ($1, $2)
+		`, id, hab.Nome)
+
+		if err != nil {
+			fmt.Printf("Erro ao adicionar habilidade: %v\n", err)
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	return id, tx.Commit()
 }
 
-func (r *TCGRepository) CreateAtaque(ataque model.Ataque) (model.Ataque, error) {
+func (r *TCGRepository) CreateAtaque(tx *sql.Tx, ataque model.Ataque) (model.Ataque, error) {
 	query := `INSERT INTO ataque (nome_ataque, dano_ataque, custo_ataque, efeito_ataque) VALUES ($1, $2, $3, $4)`
-	_, err := r.db.Exec(query, ataque.Nome, ataque.Dano, ataque.Custo, ataque.Efeito)
+	_, err := tx.Exec(query, ataque.Nome, ataque.Dano, ataque.Custo, ataque.Efeito)
 	if err != nil {
 		fmt.Printf("Erro ao criar ataque: %v\n", err)
 		return ataque, err
@@ -85,13 +129,10 @@ func (r *TCGRepository) CreateAtaque(ataque model.Ataque) (model.Ataque, error) 
 	return ataque, err
 }
 
-func (r *TCGRepository) GetAtaqueForNome(nome string) (ataque model.Ataque, err error) {
+func (r *TCGRepository) GetAtaqueForNome(tx *sql.Tx, nome string) (model.Ataque, error) {
 	query := `SELECT nome_ataque, dano_ataque, custo_ataque, efeito_ataque FROM ataque WHERE nome_ataque = $1`
-	if err != nil {
-		fmt.Printf("Erro ao preparar query: %v\n", err)
-		return model.Ataque{}, err
-	}
-	err = r.db.QueryRow(query, nome).Scan(&ataque.Nome, &ataque.Dano, &ataque.Custo, &ataque.Efeito)
+	var ataque model.Ataque
+	err := tx.QueryRow(query, nome).Scan(&ataque.Nome, &ataque.Dano, &ataque.Custo, &ataque.Efeito)
 	if err != nil {
 		fmt.Printf("Erro ao buscar ataque: %v\n", err)
 		return model.Ataque{}, err
@@ -99,9 +140,9 @@ func (r *TCGRepository) GetAtaqueForNome(nome string) (ataque model.Ataque, err 
 	return ataque, err
 }
 
-func (r *TCGRepository) CreateHabilidade(ataque model.Habilidade) (model.Habilidade, error) {
+func (r *TCGRepository) CreateHabilidade(tx *sql.Tx, ataque model.Habilidade) (model.Habilidade, error) {
 	query := `INSERT INTO habilidade (nome_habilidade, efeito_habilidade) VALUES ($1, $2)`
-	_, err := r.db.Exec(query, ataque.Nome, ataque.Efeito)
+	_, err := tx.Exec(query, ataque.Nome, ataque.Efeito)
 	if err != nil {
 		fmt.Printf("Erro ao criar ataque: %v\n", err)
 		return ataque, err
@@ -109,13 +150,10 @@ func (r *TCGRepository) CreateHabilidade(ataque model.Habilidade) (model.Habilid
 	return ataque, err
 }
 
-func (r *TCGRepository) GetHabilidadeForNome(nome string) (habilidade model.Habilidade, err error) {
+func (r *TCGRepository) GetHabilidadeForNome(tx *sql.Tx, nome string) (model.Habilidade, error) {
 	query := `SELECT nome_habilidade, efeito_habilidade FROM habilidade WHERE nome_habilidade = $1`
-	if err != nil {
-		fmt.Printf("Erro ao preparar query: %v\n", err)
-		return model.Habilidade{}, err
-	}
-	err = r.db.QueryRow(query, nome).Scan(&habilidade.Nome, &habilidade.Efeito)
+	var habilidade model.Habilidade
+	err := tx.QueryRow(query, nome).Scan(&habilidade.Nome, &habilidade.Efeito)
 	if err != nil {
 		fmt.Printf("Erro ao buscar habilidade: %v\n", err)
 		return model.Habilidade{}, err
@@ -125,8 +163,29 @@ func (r *TCGRepository) GetHabilidadeForNome(nome string) (habilidade model.Habi
 
 func (r *TCGRepository) GetTCGPokemonByID(id int) (model.Pokemon, error) {
 	var pokemon model.Pokemon
-	query := `SELECT id, nome, card_type, tipo, estagio, habilidade, ataque, ps, recuo, fraqueza FROM pokemon WHERE id = $1`
-	err := r.db.QueryRow(query, id).Scan(&pokemon.Id, &pokemon.Nome, &pokemon.TipoCarta, &pokemon.Tipo, &pokemon.Estagio, &pokemon.Habilidade.Nome, &pokemon.Ataque.Nome, &pokemon.PS, &pokemon.Recuo, &pokemon.Fraqueza)
+	query := `
+	select 
+		id, 
+		nome, 
+		card_type, 
+		tipo, 
+		estagio, 
+		geração, 
+		ps, 
+		recuo, 
+		fraqueza,
+		nome_ataque,
+		dano_ataque, 
+		custo ataque, 
+		efeito_ataque,
+		nome habilidade, 
+		efeito_habilidade 
+	from pokemon as a
+	inner join pokemon_ataque as b on a.id = b.id_pokemon
+	inner join ataque as ba on b.ataque = ba.nome_ataque
+	inner join pokemon_habilidade AS c on a.id = c.id_pokemon
+	inner join habilidade as ca on c.habilidade = ca.nome_habilidade;`
+	err := r.db.QueryRow(query, id).Scan(&pokemon.Id, &pokemon.Nome, &pokemon.TipoCarta, &pokemon.Tipo, &pokemon.Estagio, &pokemon.Geracao, &pokemon.PS, &pokemon.Recuo, &pokemon.Fraqueza, &pokemon.Ataque.nome)
 	if err != nil {
 		fmt.Printf("Erro ao buscar Pokemon: %v\n", err)
 		return model.Pokemon{}, err
@@ -137,7 +196,7 @@ func (r *TCGRepository) GetTCGPokemonByID(id int) (model.Pokemon, error) {
 
 func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 
-	query := `SELECT id, nome, card_type, tipo, estagio, habilidade, ataque, ps, recuo, fraqueza FROM pokemon`
+	query := `SELECT id, nome, card_type, tipo, estagio, geracao, ps, recuo, fraqueza FROM pokemon`
 	list, err := r.db.Query(query)
 	if err != nil {
 		fmt.Printf("Erro ao Listar Pokemon: %v\n", err)
@@ -153,8 +212,7 @@ func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 			&pokemon.TipoCarta,
 			&pokemon.Tipo,
 			&pokemon.Estagio,
-			&pokemon.Habilidade.Nome,
-			&pokemon.Ataque.Nome,
+			&pokemon.Geracao,
 			&pokemon.PS,
 			&pokemon.Recuo,
 			&pokemon.Fraqueza,
@@ -173,57 +231,76 @@ func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 func (r *TCGRepository) UpdateTCGPokemon(id int, base model.Pokemon) (model.Pokemon, error) {
 	var pokemon model.Pokemon
 
-	ataque, err := r.GetAtaqueForNome(base.Ataque.Nome)
+	tx, err := r.db.Begin()
 	if err != nil {
-		if err == sql.ErrNoRows {
-			novoAtaque, err := r.CreateAtaque(base.Ataque)
-			if err != nil {
-				fmt.Printf("Erro ao criar ataque: %v\n", err)
-				return model.Pokemon{}, err
-			}
-			base.Ataque = novoAtaque
-		} else {
-			fmt.Printf("Erro ao buscar ataque: %v\n", err)
-			return model.Pokemon{}, err
-		}
-	} else {
-		base.Ataque = ataque
+		fmt.Printf("Erro ao iniciar o Banco: %v\n", err)
+		return model.Pokemon{}, err
 	}
 
-	habilidade, err := r.GetHabilidadeForNome(base.Habilidade.Nome)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			novaHabilidade, err := r.CreateHabilidade(base.Habilidade)
-			if err != nil {
-				fmt.Printf("Erro ao criar habilidade: %v\n", err)
+	var ataqueAtualizado []model.Ataque
+
+	for _, atk := range pokemon.Ataque {
+		ataque, err := r.GetAtaqueForNome(tx, atk.Nome)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				novoAtaque, err := r.CreateAtaque(tx, atk)
+				if err != nil {
+					fmt.Printf("Erro ao criar ataque: %v\n", err)
+					tx.Rollback()
+					return model.Pokemon{}, err
+				}
+				ataqueAtualizado = append(ataqueAtualizado, novoAtaque)
+			} else {
+				fmt.Printf("Erro ao buscar ataque: %v\n", err)
+				tx.Rollback()
 				return model.Pokemon{}, err
 			}
-			base.Habilidade = novaHabilidade
 		} else {
-			fmt.Printf("Erro ao buscar habilidade: %v\n", err)
-			return model.Pokemon{}, err
+			ataqueAtualizado = append(ataqueAtualizado, ataque)
 		}
-	} else {
-		base.Habilidade = habilidade
 	}
 
-	query := `UPDATE pokemon SET nome=$1, card_type=$2, tipo=$3, estagio=$4, habilidade=$5, ataque=$6, ps=$7, recuo=$8, fraqueza=$9 WHERE id=$10`
-	err = r.db.QueryRow(query, base.Nome, base.TipoCarta, base.Tipo, base.Estagio, base.Habilidade.Nome, base.Ataque.Nome, base.PS, base.Recuo, base.Fraqueza, id).Scan(
-		&pokemon.Ataque.Nome,
+	var habilidadeAtualizado []model.Habilidade
+
+	for _, hab := range pokemon.Habilidade {
+		habilidade, err := r.GetHabilidadeForNome(tx, hab.Nome)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				novaHabilidade, err := r.CreateHabilidade(tx, hab)
+				if err != nil {
+					fmt.Printf("Erro ao criar habilidade: %v\n", err)
+					tx.Rollback()
+					return model.Pokemon{}, err
+				}
+				habilidadeAtualizado = append(habilidadeAtualizado, novaHabilidade)
+			} else {
+				fmt.Printf("Erro ao buscar habilidade: %v\n", err)
+				tx.Rollback()
+				return model.Pokemon{}, err
+			}
+		} else {
+			habilidadeAtualizado = append(habilidadeAtualizado, habilidade)
+		}
+	}
+
+	query := `UPDATE pokemon SET nome=$1, card_type=$2, tipo=$3, estagio=$4, geracao=$5, ps=$6, recuo=$7, fraqueza=$8 WHERE id=$9`
+	err = tx.QueryRow(query, base.Nome, base.TipoCarta, base.Tipo, base.Estagio, base.Geracao, base.PS, base.Recuo, base.Fraqueza, id).Scan(
+		&pokemon.Nome,
 		&pokemon.TipoCarta,
 		&pokemon.Tipo,
 		&pokemon.Estagio,
-		&pokemon.Habilidade.Nome,
-		&pokemon.Ataque.Nome,
+		&pokemon.Geracao,
 		&pokemon.PS,
 		&pokemon.Recuo,
 		&pokemon.Fraqueza,
 	)
 	if err != nil {
 		fmt.Printf("Erro ao tentar alterar o pokemon: %v\n", err)
+		tx.Rollback()
 		return model.Pokemon{}, err
 	}
-	return pokemon, err
+
+	return pokemon, tx.Commit()
 }
 
 func (r *TCGRepository) DeleteTCGPokemon(id int) (string, error) {
