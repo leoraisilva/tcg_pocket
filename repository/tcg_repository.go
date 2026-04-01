@@ -163,68 +163,111 @@ func (r *TCGRepository) GetHabilidadeForNome(tx *sql.Tx, nome string) (model.Hab
 
 func (r *TCGRepository) GetTCGPokemonByID(id int) (model.Pokemon, error) {
 	var pokemon model.Pokemon
+	tx, err := r.db.Begin()
+	if err != nil {
+		fmt.Printf("Erro ao iniciar o Banco: %v\n", err)
+		return model.Pokemon{}, err
+	}
 	query := `
-	select 
-		id, 
-		nome, 
-		card_type, 
-		tipo, 
-		estagio, 
-		geração, 
-		ps, 
-		recuo, 
-		fraqueza,
-		nome_ataque,
-		dano_ataque, 
-		custo ataque, 
-		efeito_ataque,
-		nome habilidade, 
-		efeito_habilidade 
-	from pokemon as a
-	inner join pokemon_ataque as b on a.id = b.id_pokemon
-	inner join ataque as ba on b.ataque = ba.nome_ataque
-	inner join pokemon_habilidade AS c on a.id = c.id_pokemon
-	inner join habilidade as ca on c.habilidade = ca.nome_habilidade;`
-	err := r.db.QueryRow(query, id).Scan(&pokemon.Id, &pokemon.Nome, &pokemon.TipoCarta, &pokemon.Tipo, &pokemon.Estagio, &pokemon.Geracao, &pokemon.PS, &pokemon.Recuo, &pokemon.Fraqueza, &pokemon.Ataque.nome)
+	select
+		id,
+		nome,
+		card_type,
+		tipo,
+		estagio,
+		geracao,
+		ps,
+		recuo,
+		fraqueza
+	from pokemon where id=$1`
+	err = tx.QueryRow(query, id).Scan(&pokemon.Id, &pokemon.Nome, &pokemon.TipoCarta, &pokemon.Tipo, &pokemon.Estagio, &pokemon.Geracao, &pokemon.PS, &pokemon.Recuo, &pokemon.Fraqueza)
 	if err != nil {
 		fmt.Printf("Erro ao buscar Pokemon: %v\n", err)
 		return model.Pokemon{}, err
 	}
+	
+	query = `select ataque from pokemon_ataque where id_pokemon=$1`
+	ataque, err := tx.Query(query, id)
+	if err != nil {
+		fmt.Printf("Erro ao buscar ataque Pokemon: %v\n", err)
+		return model.Pokemon{}, err
+	}
+	var listAtaque []string
+	for ataque.Next() {
+		var atk string
+		if err = ataque.Scan(&atk); err != nil {
+			fmt.Printf("Erro ao buscar ataque Pokemon: %v\n", err)
+			return model.Pokemon{}, err
+		}
+		listAtaque = append(listAtaque, atk)
+	}
 
-	return pokemon, nil
+	for _, atk := range listAtaque {
+		valueAtaque, err := r.GetAtaqueForNome(tx, atk)
+		if err != nil {
+			fmt.Printf("Erro ao buscar ataque Pokemon: %v\n", err)
+			return model.Pokemon{}, err
+		}
+		pokemon.Ataque = append(pokemon.Ataque, valueAtaque)
+	}
+
+	query = `select habilidade from pokemon_habilidade where id_pokemon=$1`
+	habilidade, err := tx.Query(query, id)
+	if err != nil {
+		fmt.Printf("Erro ao buscar habilidade Pokemon: %v\n", err)
+		return model.Pokemon{}, err
+	}
+
+	var listHabilidade []string
+	for habilidade.Next() {
+		var hab string
+		if err = habilidade.Scan(&hab); err != nil {
+			fmt.Printf("Erro ao buscar habilidade Pokemon: %v\n", err)
+			return model.Pokemon{}, err
+		}
+		listHabilidade = append(listHabilidade, hab)
+	}
+
+	for _, hab := range listHabilidade {
+		valueHabilidade, err := r.GetHabilidadeForNome(tx, hab)
+		if err != nil {
+			fmt.Printf("Erro ao buscar habilidade Pokemon: %v\n", err)
+			return model.Pokemon{}, err
+		}
+		pokemon.Habilidade = append(pokemon.Habilidade, valueHabilidade)
+	}
+
+	return pokemon, tx.Commit()
 }
 
 func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 
-	query := `SELECT id, nome, card_type, tipo, estagio, geracao, ps, recuo, fraqueza FROM pokemon`
+	query := `SELECT id FROM pokemon`
 	list, err := r.db.Query(query)
 	if err != nil {
 		fmt.Printf("Erro ao Listar Pokemon: %v\n", err)
 		return []model.Pokemon{}, err
 	}
 	var listPokemon []model.Pokemon
-	var pokemon model.Pokemon
-
+	var listId []int
 	for list.Next() {
-		err = list.Scan(
-			&pokemon.Id,
-			&pokemon.Nome,
-			&pokemon.TipoCarta,
-			&pokemon.Tipo,
-			&pokemon.Estagio,
-			&pokemon.Geracao,
-			&pokemon.PS,
-			&pokemon.Recuo,
-			&pokemon.Fraqueza,
-		)
+		var isPokemon int
+		if err := list.Scan(&isPokemon); err != nil {
+			fmt.Printf("Erro na listagem de Pokemon: %v\n", err)
+			return []model.Pokemon{}, err
+		}
+		listId = append(listId, isPokemon)
+	}
 
+	for _, isPokemon := range listId {
+		pokemon, err := r.GetTCGPokemonByID(isPokemon)
 		if err != nil {
-			fmt.Printf("Erro na Listagem Pokemon: %v\n", err)
+			fmt.Printf("Erro na listagem de Pokemon: %v\n", err)
 			return []model.Pokemon{}, err
 		}
 		listPokemon = append(listPokemon, pokemon)
 	}
-	list.Close()
+	
 	return listPokemon, err
 }
 
@@ -309,161 +352,6 @@ func (r *TCGRepository) DeleteTCGPokemon(id int) (string, error) {
 	_, err := r.db.Query(query, id)
 	if err != nil {
 		fmt.Printf("Erro ao deletar o pokemon: %v\n", err)
-		return "", err
-	}
-	return response, err
-}
-
-/* Endpoint /apoiador */
-func (r *TCGRepository) CreateApoiador(apoiador model.Apoiador) (int, error) {
-	var id int
-	query := `INSERT INTO apoiador (nome, card_type, efeito) VALUES ($1, $2, $3) RETURNING id`
-	err := r.db.QueryRow(query, apoiador.Nome, apoiador.CardType, apoiador.Efeito).Scan(&id)
-	if err != nil {
-		fmt.Printf("Erro ao Criar Apoiador: %v\n", err)
-		return 0, err
-	}
-	return id, err
-}
-
-func (r *TCGRepository) GetTCGApoiadorByID(id int) (model.Apoiador, error) {
-	var apoiador model.Apoiador
-	query := `SELECT id, nome, card_type, efeito FROM apoiador WHERE id = $1`
-	err := r.db.QueryRow(query, id).Scan(
-		&apoiador.Id,
-		&apoiador.Nome,
-		&apoiador.CardType,
-		&apoiador.Efeito)
-	if err != nil {
-		fmt.Printf("Erro ao Buscar Apoiador: %v\n", err)
-		return model.Apoiador{}, err
-	}
-	return apoiador, err
-}
-
-func (r *TCGRepository) GetTCGCollectionApoiador() ([]model.Apoiador, error) {
-	query := `SELECT id, nome, card_type, efeito FROM apoiador`
-	list, err := r.db.Query(query)
-	if err != nil {
-		fmt.Printf("Erro ao listar os Apoiadores: %v\n", err)
-		return []model.Apoiador{}, err
-	}
-	var apoiador model.Apoiador
-	var collectioApoiador []model.Apoiador
-
-	for list.Next() {
-		err = list.Scan(
-			&apoiador.Id,
-			&apoiador.Nome,
-			&apoiador.CardType,
-			&apoiador.Efeito)
-		if err != nil {
-			fmt.Printf("Erro ao Listar Apoiadores: %v\n", err)
-			return []model.Apoiador{}, err
-		}
-		collectioApoiador = append(collectioApoiador, apoiador)
-	}
-	list.Close()
-	return collectioApoiador, err
-}
-
-func (r *TCGRepository) UpdateTCGApoiador(id int, apoiador model.Apoiador) (model.Apoiador, error) {
-	var row model.Apoiador
-	query := `UPDATE apoiador SET nome=$1, card_type=$2, efeito=$3 WHERE id=$4`
-	err := r.db.QueryRow(query, apoiador.Nome, apoiador.CardType, apoiador.Efeito, id).Scan(
-		&row.Nome,
-		&row.CardType,
-		&row.Efeito,
-	)
-	if err != nil {
-		fmt.Printf("Erro ao tentar alterar o apoiador: %v\n", err)
-		return model.Apoiador{}, err
-	}
-	return model.Apoiador{}, err
-}
-
-func (r *TCGRepository) DeleteTCGApoiador(id int) (string, error) {
-	response := "Delete com Sucesso!!"
-	query := `DELETE FROM apoiador WHERE id=$1`
-	_, err := r.db.Query(query, id)
-	if err != nil {
-		fmt.Printf("Erro ao tentar deletar o Apoidores: %v\n", err)
-		return "", err
-	}
-	return response, err
-}
-
-/* Endpoint /item */
-func (r *TCGRepository) CreateItem(item model.Item) (int, error) {
-	var id int
-	query := `INSERT INTO item (nome, card_type, efeito) VALUES ($1, $2, $3) RETURNING id`
-	err := r.db.QueryRow(query, item.Nome, item.CardType, item.Efeito).Scan(&id)
-	if err != nil {
-		fmt.Printf("Erro ao Criar Item: %v\n", err)
-		return 0, err
-	}
-	return id, err
-}
-
-func (r *TCGRepository) GetTCGItemByID(id int) (model.Item, error) {
-	var item model.Item
-	query := `SELECT id, nome, card_type, efeito FROM item WHERE id=$1`
-	err := r.db.QueryRow(query, id).Scan(
-		&item.Id,
-		&item.Nome,
-		&item.CardType,
-		&item.Efeito,
-	)
-	if err != nil {
-		fmt.Printf("Erro ao Buscar Item por ID: %v\n", err)
-		return model.Item{}, err
-	}
-	return item, err
-}
-
-func (r *TCGRepository) GetTCGCollectionItem() ([]model.Item, error) {
-	query := `SELECT id, nome, card_type, efeito FROM item`
-	list, err := r.db.Query(query)
-	var item model.Item
-	var itens []model.Item
-
-	for list.Next() {
-		list.Scan(
-			&item.Id,
-			&item.Nome,
-			&item.CardType,
-			&item.Efeito,
-		)
-		if err != nil {
-			fmt.Printf("Erro ao escanear os item listado: %v\n", err)
-			return []model.Item{}, err
-		}
-		itens = append(itens, item)
-	}
-	list.Close()
-	return itens, err
-}
-
-func (r *TCGRepository) UpdateTCGItem(id int, item model.Item) (model.Item, error) {
-	var row model.Item
-	query := `UPDATE item SET nome=$1, card_type=$2, efeito=$3 WHERE id=$4`
-	err := r.db.QueryRow(query, item.Nome, item.CardType, item.Efeito, id).Scan(
-		&row.Nome,
-		&row.CardType,
-		&row.Efeito,
-	)
-	if err != nil {
-		fmt.Printf("Erro ao tentar alterar o apoiador: %v\n", err)
-		return model.Item{}, err
-	}
-	return model.Item{}, err
-}
-
-func (r *TCGRepository) DeleteTCGItem(id int) (string, error) {
-	response := "Delete com Sucesso!!"
-	_, err := r.db.Query(`DELETE FROM item WHERE id=$1`, id)
-	if err != nil {
-		fmt.Printf("Erro ao tentar deletar item: %v\n", err)
 		return "", err
 	}
 	return response, err

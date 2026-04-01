@@ -8,46 +8,45 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type TCGController struct {
-	usecase usecase.TCGUseCase
+type TCGApoiadorController struct {
+	usecase usecase.TCGApoiadorUsecase
 }
 
-func NewTCGController(usecase usecase.TCGUseCase) TCGController {
-	return TCGController{usecase}
+func NewTCGApoiadorController(usecase usecase.TCGApoiadorUsecase) TCGApoiadorController {
+	return TCGApoiadorController{usecase: usecase}
 }
 
-func (c *TCGController) CreateTCGPokemon(g *gin.Context) {
-	var model model.Pokemon
-	if err := g.ShouldBindJSON(&model); err != nil {
+func (c *TCGController) CreateApoiador(g *gin.Context) {
+	var apoiador model.Apoiador
+	if err := g.ShouldBindJSON(&apoiador); err != nil {
 		g.JSON(400, gin.H{"error": err.Error()})
-		return
 	}
-	result, err := c.usecase.CreateTCGPokemon(model)
+	response, err := c.usecase.CreateApoiador(apoiador)
 	if err != nil {
 		g.JSON(500, gin.H{"error": err.Error()})
-		return
 	}
-	g.JSON(200, result)
+	g.JSON(200, response)
+
 }
 
-func (c *TCGController) GetTCGPokemonByID(g *gin.Context) {
+func (c *TCGController) GetTCGApoiadorByID(g *gin.Context) {
 	idParam := g.Param("id")
 	var id int
 	_, err := fmt.Sscanf(idParam, "%d", &id)
 	if err != nil {
-		g.JSON(400, gin.H{"error": "ID inválido"})
+		g.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := c.usecase.GetTCGPokemonByID(id)
+	response, err := c.usecase.GetTCGApoiadorByID(id)
 	if err != nil {
 		g.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	g.JSON(200, result)
+	g.JSON(200, response)
 }
 
-func (c *TCGController) GetTCGCollection(g *gin.Context) {
-	list, err := c.usecase.GetTCGCollection()
+func (c *TCGController) GetTCGCollectionApoiador(g *gin.Context) {
+	list, err := c.usecase.GetTCGCollectionApoiador()
 	if err != nil {
 		g.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -55,7 +54,7 @@ func (c *TCGController) GetTCGCollection(g *gin.Context) {
 	g.JSON(200, list)
 }
 
-func (c *TCGController) UpdateTCGPokemon(g *gin.Context) {
+func (c *TCGController) UpdateTCGApoiador(g *gin.Context) {
 	var id int
 	idParam := g.Param("id")
 	_, err := fmt.Sscanf(idParam, "id", id)
@@ -63,12 +62,12 @@ func (c *TCGController) UpdateTCGPokemon(g *gin.Context) {
 		g.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	var row model.Pokemon
+	var row model.Apoiador
 	if err = g.ShouldBindJSON(&row); err != nil {
 		g.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	response, err := c.usecase.UpdateTCGPokemon(id, row)
+	response, err := c.usecase.UpdateTCGApoiador(id, row)
 	if err != nil {
 		g.JSON(500, gin.H{"error": err})
 		return
@@ -76,15 +75,15 @@ func (c *TCGController) UpdateTCGPokemon(g *gin.Context) {
 	g.JSON(200, response)
 }
 
-func (c *TCGController) DeleteTCGPokemon(g *gin.Context) {
-	var id int
+func (c *TCGController) DeleteTCGApoiador(g *gin.Context) {
 	idParam := g.Param("id")
-	id, err := fmt.Sscanf(idParam, "%d", &id)
+	var id int
+	_, err := fmt.Sscanf(idParam, "id", &id)
 	if err != nil {
 		g.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	response, err := c.usecase.DeleteTCGPokemon(id)
+	response, err := c.usecase.DeleteTCGApoiador(id)
 	if err != nil {
 		g.JSON(500, gin.H{"error": err.Error()})
 		return
