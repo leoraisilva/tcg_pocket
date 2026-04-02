@@ -3,6 +3,7 @@ package helper
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -26,6 +27,28 @@ func GetConnection() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	err = ConnMigration(db)
+	if err != nil {
+		return nil, err
+	}
+
 	fmt.Println("Conexão com o banco de dados estabelecida com sucesso!")
 	return db, nil
+}
+
+func ConnMigration(db *sql.DB) error {
+	sqlByte, err := os.ReadFile("resource/migration.sql")
+	if err != nil {
+		fmt.Printf("Erro ao acessar as tabelas do banco: %v\n", err)
+		return err
+	}
+
+	_, err = db.Exec(string(sqlByte))
+	if err != nil {
+		fmt.Printf("Erro ao acessar as tabelas do banco: %v\n", err)
+		return err
+	}
+	fmt.Println("Migrations executado com sucesso!!")
+	return nil
 }

@@ -16,6 +16,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	repository := repository.NewTCGRepository(conn)
 	usecase := usecase.NewTCGUseCase(repository)
 	controller := controller.NewTCGController(usecase)

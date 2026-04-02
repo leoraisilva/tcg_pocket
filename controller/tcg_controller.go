@@ -77,9 +77,9 @@ func (c *TCGController) UpdateTCGPokemon(g *gin.Context) {
 }
 
 func (c *TCGController) DeleteTCGPokemon(g *gin.Context) {
-	var id int
 	idParam := g.Param("id")
-	id, err := fmt.Sscanf(idParam, "%d", &id)
+	var id int
+	_, err := fmt.Sscanf(idParam, "%d", &id)
 	if err != nil {
 		g.JSON(400, gin.H{"error": err.Error()})
 		return

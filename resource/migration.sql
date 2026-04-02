@@ -1,4 +1,4 @@
-CREATE TABLE pokemon (
+CREATE TABLE IF NOT EXISTS pokemon (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     card_type VARCHAR(50) NOT NULL,
@@ -10,14 +10,14 @@ CREATE TABLE pokemon (
     fraqueza VARCHAR(50)
 );
 
-CREATE TABLE ataque (
+CREATE TABLE IF NOT EXISTS ataque (
     nome_ataque VARCHAR(255) PRIMARY KEY,
     dano_ataque INT NOT NULL,
     custo_ataque VARCHAR(50),
     efeito_ataque TEXT
 );
 
-CREATE TABLE pokemon_ataque (
+CREATE TABLE IF NOT EXISTS pokemon_ataque (
     id_pokemon INT,
     ataque VARCHAR (255),
     PRIMARY KEY (id_pokemon, ataque),
@@ -25,12 +25,12 @@ CREATE TABLE pokemon_ataque (
     FOREIGN KEY (ataque) REFERENCES ataque (nome_ataque)
 );
 
-CREATE TABLE habilidade (
+CREATE TABLE IF NOT EXISTS habilidade (
     nome_habilidade VARCHAR(255) PRIMARY KEY,
     efeito_habilidade TEXT
 );
 
-CREATE TABLE pokemon_habilidade (
+CREATE TABLE IF NOT EXISTS pokemon_habilidade (
     id_pokemon INT,
     habilidade VARCHAR (255),
     PRIMARY KEY (id_pokemon, habilidade),
@@ -38,14 +38,14 @@ CREATE TABLE pokemon_habilidade (
     FOREIGN KEY (habilidade) REFERENCES habilidade(nome_habilidade)
 );
 
-CREATE TABLE item (
+CREATE TABLE IF NOT EXISTS item (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     card_type VARCHAR(50) NOT NULL,
     efeito TEXT
 );
 
-CREATE TABLE apoiador (
+CREATE TABLE IF NOT EXISTS apoiador (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     card_type VARCHAR(50) NOT NULL,
