@@ -185,7 +185,7 @@ func (r *TCGRepository) GetTCGPokemonByID(id int) (model.Pokemon, error) {
 		fmt.Printf("Erro ao buscar Pokemon: %v\n", err)
 		return model.Pokemon{}, err
 	}
-	
+
 	query = `select ataque from pokemon_ataque where id_pokemon=$1`
 	ataque, err := tx.Query(query, id)
 	if err != nil {
@@ -267,7 +267,7 @@ func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 		}
 		listPokemon = append(listPokemon, pokemon)
 	}
-	
+
 	return listPokemon, err
 }
 
@@ -278,52 +278,6 @@ func (r *TCGRepository) UpdateTCGPokemon(id int, base model.Pokemon) (model.Poke
 	if err != nil {
 		fmt.Printf("Erro ao iniciar o Banco: %v\n", err)
 		return model.Pokemon{}, err
-	}
-
-	var ataqueAtualizado []model.Ataque
-
-	for _, atk := range pokemon.Ataque {
-		ataque, err := r.GetAtaqueForNome(tx, atk.Nome)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				novoAtaque, err := r.CreateAtaque(tx, atk)
-				if err != nil {
-					fmt.Printf("Erro ao criar ataque: %v\n", err)
-					tx.Rollback()
-					return model.Pokemon{}, err
-				}
-				ataqueAtualizado = append(ataqueAtualizado, novoAtaque)
-			} else {
-				fmt.Printf("Erro ao buscar ataque: %v\n", err)
-				tx.Rollback()
-				return model.Pokemon{}, err
-			}
-		} else {
-			ataqueAtualizado = append(ataqueAtualizado, ataque)
-		}
-	}
-
-	var habilidadeAtualizado []model.Habilidade
-
-	for _, hab := range pokemon.Habilidade {
-		habilidade, err := r.GetHabilidadeForNome(tx, hab.Nome)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				novaHabilidade, err := r.CreateHabilidade(tx, hab)
-				if err != nil {
-					fmt.Printf("Erro ao criar habilidade: %v\n", err)
-					tx.Rollback()
-					return model.Pokemon{}, err
-				}
-				habilidadeAtualizado = append(habilidadeAtualizado, novaHabilidade)
-			} else {
-				fmt.Printf("Erro ao buscar habilidade: %v\n", err)
-				tx.Rollback()
-				return model.Pokemon{}, err
-			}
-		} else {
-			habilidadeAtualizado = append(habilidadeAtualizado, habilidade)
-		}
 	}
 
 	query := `UPDATE pokemon SET nome=$1, card_type=$2, tipo=$3, estagio=$4, geracao=$5, ps=$6, recuo=$7, fraqueza=$8 WHERE id=$9`
@@ -347,12 +301,25 @@ func (r *TCGRepository) UpdateTCGPokemon(id int, base model.Pokemon) (model.Poke
 }
 
 func (r *TCGRepository) DeleteTCGPokemon(id int) (string, error) {
-	response := "Delete com Sucesso!!"
-	query := `DELETE FROM pokemon WHERE id=$1`
-	_, err := r.db.Query(query, id)
+	response := "Delete com Sucesso!! "
+	query := `DELETE FROM pokemon_ataque WHERE id_pokemon=$1`
+	_, err := r.db.Exec(query, id)
+	if err != nil {
+		fmt.Printf("Erro ao desvincular ataque: %v\n", err)
+		return "", err
+	}
+	query = `DELETE FROM pokemon_habilidade WHERE id_pokemon=$1`
+	_, err = r.db.Exec(query, id)
+	if err != nil {
+		fmt.Printf("Erro ao desvincular habilidade: %v\n", err)
+		return "", err
+	}
+	query = `DELETE FROM pokemon WHERE id=$1`
+	_, err = r.db.Exec(query, id)
 	if err != nil {
 		fmt.Printf("Erro ao deletar o pokemon: %v\n", err)
 		return "", err
 	}
+
 	return response, err
 }
