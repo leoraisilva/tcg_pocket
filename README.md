@@ -39,6 +39,8 @@ O projeto segue uma abordagem inspirada em Clean Architecture, separando respons
 ### ❌ Remover carta
 
 # Tecnologias utilizadas
-Go (Golang)
-net/http (ou framework, se aplicável)
-JSON para comunicação de dados
+<ol>
+    <ul>Go (Golang)</ul>
+    <ul>net/http (ou framework, se aplicável)</ul>
+    <ul>JSON para comunicação de dados</ul>
+</ol>
