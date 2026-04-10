@@ -24,7 +24,7 @@ func (u *TCGUseCase) CreateApoiador(apoiador model.Apoiador) (model.Apoiador, er
 	return apoiador, err
 }
 
-func (u *TCGUseCase) GetTCGApoiadorByID(id int) (model.Apoiador, error) {
+func (u *TCGUseCase) GetTCGApoiadorByID(id int32) (model.Apoiador, error) {
 	return u.repository.GetTCGApoiadorByID(id)
 }
 
@@ -32,10 +32,10 @@ func (u *TCGUseCase) GetTCGCollectionApoiador() ([]model.Apoiador, error) {
 	return u.repository.GetTCGCollectionApoiador()
 }
 
-func (u *TCGUseCase) UpdateTCGApoiador(id int, model model.Apoiador) (model.Apoiador, error) {
+func (u *TCGUseCase) UpdateTCGApoiador(id int32, model model.Apoiador) (model.Apoiador, error) {
 	return u.repository.UpdateTCGApoiador(id, model)
 }
 
-func (u *TCGUseCase) DeleteTCGApoiador(id int) (string, error) {
+func (u *TCGUseCase) DeleteTCGApoiador(id int32) (string, error) {
 	return u.repository.DeleteTCGApoiador(id)
 }

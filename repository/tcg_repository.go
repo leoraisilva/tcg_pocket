@@ -15,8 +15,8 @@ func NewTCGRepository(db *sql.DB) TCGRepository {
 }
 
 /* Endpoint /pokemon */
-func (r *TCGRepository) CreateTCGPokemon(pokemon model.Pokemon) (int, error) {
-	var id int
+func (r *TCGRepository) CreateTCGPokemon(pokemon model.Pokemon) (int32, error) {
+	var id int32
 
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -161,7 +161,7 @@ func (r *TCGRepository) GetHabilidadeForNome(tx *sql.Tx, nome string) (model.Hab
 	return habilidade, err
 }
 
-func (r *TCGRepository) GetTCGPokemonByID(id int) (model.Pokemon, error) {
+func (r *TCGRepository) GetTCGPokemonByID(id int32) (model.Pokemon, error) {
 	var pokemon model.Pokemon
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -249,9 +249,9 @@ func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 		return []model.Pokemon{}, err
 	}
 	var listPokemon []model.Pokemon
-	var listId []int
+	var listId []int32
 	for list.Next() {
-		var isPokemon int
+		var isPokemon int32
 		if err := list.Scan(&isPokemon); err != nil {
 			fmt.Printf("Erro na listagem de Pokemon: %v\n", err)
 			return []model.Pokemon{}, err
@@ -271,7 +271,7 @@ func (r *TCGRepository) GetTCGCollection() ([]model.Pokemon, error) {
 	return listPokemon, err
 }
 
-func (r *TCGRepository) UpdateTCGPokemon(id int, base model.Pokemon) (model.Pokemon, error) {
+func (r *TCGRepository) UpdateTCGPokemon(id int32, base model.Pokemon) (model.Pokemon, error) {
 	var pokemon model.Pokemon
 
 	tx, err := r.db.Begin()
@@ -300,7 +300,7 @@ func (r *TCGRepository) UpdateTCGPokemon(id int, base model.Pokemon) (model.Poke
 	return pokemon, tx.Commit()
 }
 
-func (r *TCGRepository) DeleteTCGPokemon(id int) (string, error) {
+func (r *TCGRepository) DeleteTCGPokemon(id int32) (string, error) {
 	response := "Delete com Sucesso!! "
 	query := `DELETE FROM pokemon_ataque WHERE id_pokemon=$1`
 	_, err := r.db.Exec(query, id)
