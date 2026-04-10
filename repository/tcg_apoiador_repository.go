@@ -14,8 +14,8 @@ func NewTCGItemRepository(db *sql.DB) TCGItemRepository {
 	return TCGItemRepository{db: db}
 }
 
-func (r *TCGRepository) CreateApoiador(apoiador model.Apoiador) (int, error) {
-	var id int
+func (r *TCGRepository) CreateApoiador(apoiador model.Apoiador) (int32, error) {
+	var id int32
 	query := `INSERT INTO apoiador (nome, card_type, efeito) VALUES ($1, $2, $3) RETURNING id`
 	err := r.db.QueryRow(query, apoiador.Nome, apoiador.CardType, apoiador.Efeito).Scan(&id)
 	if err != nil {
@@ -25,7 +25,7 @@ func (r *TCGRepository) CreateApoiador(apoiador model.Apoiador) (int, error) {
 	return id, err
 }
 
-func (r *TCGRepository) GetTCGApoiadorByID(id int) (model.Apoiador, error) {
+func (r *TCGRepository) GetTCGApoiadorByID(id int32) (model.Apoiador, error) {
 	var apoiador model.Apoiador
 	query := `SELECT id, nome, card_type, efeito FROM apoiador WHERE id = $1`
 	err := r.db.QueryRow(query, id).Scan(
@@ -66,7 +66,7 @@ func (r *TCGRepository) GetTCGCollectionApoiador() ([]model.Apoiador, error) {
 	return collectioApoiador, err
 }
 
-func (r *TCGRepository) UpdateTCGApoiador(id int, apoiador model.Apoiador) (model.Apoiador, error) {
+func (r *TCGRepository) UpdateTCGApoiador(id int32, apoiador model.Apoiador) (model.Apoiador, error) {
 	var row model.Apoiador
 	query := `UPDATE apoiador SET nome=$1, card_type=$2, efeito=$3 WHERE id=$4`
 	err := r.db.QueryRow(query, apoiador.Nome, apoiador.CardType, apoiador.Efeito, id).Scan(
@@ -81,7 +81,7 @@ func (r *TCGRepository) UpdateTCGApoiador(id int, apoiador model.Apoiador) (mode
 	return model.Apoiador{}, err
 }
 
-func (r *TCGRepository) DeleteTCGApoiador(id int) (string, error) {
+func (r *TCGRepository) DeleteTCGApoiador(id int32) (string, error) {
 	response := "Delete com Sucesso!!"
 	query := `DELETE FROM apoiador WHERE id=$1`
 	_, err := r.db.Query(query, id)

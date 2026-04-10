@@ -18,7 +18,7 @@ func (u *TCGUseCase) GetTCGCollectionItem() ([]model.Item, error) {
 	return u.repository.GetTCGCollectionItem()
 }
 
-func (u *TCGUseCase) GetTCGItemByID(id int) (model.Item, error) {
+func (u *TCGUseCase) GetTCGItemByID(id int32) (model.Item, error) {
 	return u.repository.GetTCGItemByID(id)
 }
 
@@ -32,10 +32,10 @@ func (u *TCGUseCase) CreateItem(item model.Item) (model.Item, error) {
 	return item, err
 }
 
-func (u *TCGUseCase) UpdateTCGItem(id int, model model.Item) (model.Item, error) {
+func (u *TCGUseCase) UpdateTCGItem(id int32, model model.Item) (model.Item, error) {
 	return u.repository.UpdateTCGItem(id, model)
 }
 
-func (u *TCGUseCase) DeleteTCGItem(id int) (string, error) {
+func (u *TCGUseCase) DeleteTCGItem(id int32) (string, error) {
 	return u.repository.DeleteTCGItem(id)
 }

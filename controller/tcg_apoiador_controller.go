@@ -31,7 +31,7 @@ func (c *TCGController) CreateApoiador(g *gin.Context) {
 
 func (c *TCGController) GetTCGApoiadorByID(g *gin.Context) {
 	idParam := g.Param("id")
-	var id int
+	var id int32
 	_, err := fmt.Sscanf(idParam, "%d", &id)
 	if err != nil {
 		g.JSON(400, gin.H{"error": err.Error()})
@@ -55,7 +55,7 @@ func (c *TCGController) GetTCGCollectionApoiador(g *gin.Context) {
 }
 
 func (c *TCGController) UpdateTCGApoiador(g *gin.Context) {
-	var id int
+	var id int32
 	idParam := g.Param("id")
 	_, err := fmt.Sscanf(idParam, "id", id)
 	if err != nil {
@@ -77,7 +77,7 @@ func (c *TCGController) UpdateTCGApoiador(g *gin.Context) {
 
 func (c *TCGController) DeleteTCGApoiador(g *gin.Context) {
 	idParam := g.Param("id")
-	var id int
+	var id int32
 	_, err := fmt.Sscanf(idParam, "id", &id)
 	if err != nil {
 		g.JSON(400, gin.H{"error": err.Error()})

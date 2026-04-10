@@ -22,7 +22,7 @@ func (u *TCGUseCase) CreateTCGPokemon(model model.Pokemon) (model.Pokemon, error
 	return model, nil
 }
 
-func (u *TCGUseCase) GetTCGPokemonByID(id int) (model.Pokemon, error) {
+func (u *TCGUseCase) GetTCGPokemonByID(id int32) (model.Pokemon, error) {
 	return u.repository.GetTCGPokemonByID(id)
 }
 
@@ -30,10 +30,10 @@ func (u *TCGUseCase) GetTCGCollection() ([]model.Pokemon, error) {
 	return u.repository.GetTCGCollection()
 }
 
-func (u *TCGUseCase) UpdateTCGPokemon(id int, model model.Pokemon) (model.Pokemon, error) {
+func (u *TCGUseCase) UpdateTCGPokemon(id int32, model model.Pokemon) (model.Pokemon, error) {
 	return u.repository.UpdateTCGPokemon(id, model)
 }
 
-func (u *TCGUseCase) DeleteTCGPokemon(id int) (string, error) {
+func (u *TCGUseCase) DeleteTCGPokemon(id int32) (string, error) {
 	return u.repository.DeleteTCGPokemon(id)
 }
