@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"tcg_pocket/model"
+
+	"github.com/lib/pq"
 )
 
 type TCGRepository struct {
@@ -120,23 +122,30 @@ func (r *TCGRepository) CreateTCGPokemon(pokemon model.Pokemon) (int32, error) {
 }
 
 func (r *TCGRepository) CreateAtaque(tx *sql.Tx, ataque model.Ataque) (model.Ataque, error) {
-	query := `INSERT INTO ataque (nome_ataque, dano_ataque, custo_ataque, efeito_ataque) VALUES ($1, $2, $3, $4)`
-	_, err := tx.Exec(query, ataque.Nome, ataque.Dano, ataque.Custo, ataque.Efeito)
+	query := `INSERT INTO ataque (nome_ataque, dano_ataque, custo_ataque, efeito_ataque)
+			  VALUES ($1, $2, $3, $4)`
+
+	_, err := tx.Exec(query, ataque.Nome, ataque.Dano, pq.Array(ataque.Custo), ataque.Efeito)
 	if err != nil {
 		fmt.Printf("Erro ao criar ataque: %v\n", err)
 		return ataque, err
 	}
-	return ataque, err
+	return ataque, nil
 }
 
 func (r *TCGRepository) GetAtaqueForNome(tx *sql.Tx, nome string) (model.Ataque, error) {
 	query := `SELECT nome_ataque, dano_ataque, custo_ataque, efeito_ataque FROM ataque WHERE nome_ataque = $1`
+	var custoStr []string
 	var ataque model.Ataque
-	err := tx.QueryRow(query, nome).Scan(&ataque.Nome, &ataque.Dano, &ataque.Custo, &ataque.Efeito)
+	err := tx.QueryRow(query, nome).Scan(&ataque.Nome, &ataque.Dano, pq.Array(&custoStr), &ataque.Efeito)
 	if err != nil {
 		fmt.Printf("Erro ao buscar ataque: %v\n", err)
 		return model.Ataque{}, err
 	}
+	for _, c := range custoStr {
+		ataque.Custo = append(ataque.Custo, model.Tipo(c))
+	}
+
 	return ataque, err
 }
 

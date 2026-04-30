@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS pokemon (
 CREATE TABLE IF NOT EXISTS ataque (
     nome_ataque VARCHAR(255) PRIMARY KEY,
     dano_ataque INT NOT NULL,
-    custo_ataque VARCHAR(50),
+    custo_ataque TEXT[],
     efeito_ataque TEXT
 );
 
