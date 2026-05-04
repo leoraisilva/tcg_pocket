@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS pokemon (
     card_type VARCHAR(50) NOT NULL,
     tipo VARCHAR(50) NOT NULL,
     estagio INT,
-    geracao INT,
+    geracao TEXT,
     ps INT NOT NULL,
     recuo INT,
     fraqueza VARCHAR(50)

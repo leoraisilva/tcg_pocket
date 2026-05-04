@@ -8,7 +8,7 @@ type Pokemon struct {
 	Estagio    int32        `json:"estagio"`
 	Habilidade []Habilidade `json:"habilidade"`
 	Ataque     []Ataque     `json:"ataque"`
-	Geracao    int32        `json:"geracao"`
+	Geracao    string       `json:"geracao"`
 	PS         int32        `json:"ps"`
 	Recuo      int32        `json:"recuo"`
 	Fraqueza   Tipo         `json:"fraqueza"`

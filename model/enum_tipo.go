@@ -13,13 +13,13 @@ const (
 	TipoLutador  Tipo = "Lutador"
 	TipoNoturno  Tipo = "Noturno"
 	TipoMetal    Tipo = "Metal"
-	TipoComum    Tipo = "Comum"
+	TipoNormal   Tipo = "Normal"
 	TipoDragon   Tipo = "Dragao"
 )
 
 func (t Tipo) IsValid() bool {
 	switch t {
-	case TipoFogo, TipoAgua, TipoPlanta, TipoEletrico, TipoPsiquico, TipoLutador, TipoNoturno, TipoMetal, TipoComum, TipoDragon:
+	case TipoFogo, TipoAgua, TipoPlanta, TipoEletrico, TipoPsiquico, TipoLutador, TipoNoturno, TipoMetal, TipoNormal, TipoDragon:
 		return true
 	}
 	return false
@@ -55,8 +55,8 @@ func (t Tipo) GetTipo() string {
 		return "Noturno"
 	case TipoMetal:
 		return "Metal"
-	case TipoComum:
-		return "Comum"
+	case TipoNormal:
+		return "Normal"
 	case TipoDragon:
 		return "Dragao"
 	default:
